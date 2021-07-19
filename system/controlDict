@@ -1,0 +1,135 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     interFoam;
+
+startFrom       startTime;//latestTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         2;
+
+deltaT          0.001;
+
+writeControl    adjustableRunTime;
+
+writeInterval   0.1;//0.05;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression no;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable yes;
+
+adjustTimeStep  yes;
+
+maxCo           1;
+maxAlphaCo      1;
+
+maxDeltaT       0.01;
+
+functions{
+    VariationInY
+    {
+        functionObjectLibs ( "libutilityFunctionObjects.so" );
+        enabled         true;
+        type            coded;
+        name    printMinU;
+        executeControl      runTime;
+        executeInterval     0.1;
+        writeControl        runTime;//timeStep;
+        writeInterval       0.1;
+        log true;
+
+        codeInclude
+        #{
+            #include "fvCFD.H"
+            #include <fstream>
+            // #include "OFstream.H"
+        #};
+    
+        codeOptions
+        #{
+            -I$(LIB_SRC)/finiteVolume/lnInclude \
+            -I$(LIB_SRC)/meshTools/lnInclude \
+            -I$(LIB_SRC)/OpenFOAM/lnInclude
+        #};
+    
+        codeLibs
+        #{
+            -lmeshTools \
+            -lfiniteVolume \
+            -lOpenFOAM
+        #};
+
+        codeExecute
+        #{
+            const volScalarField& alpha
+            (
+                mesh().lookupObject<volScalarField>("alpha.water")
+            );
+
+            const fvMesh& mesh = alpha.mesh();
+
+            scalar height(0.0);
+
+            scalar xDirection(0.0);
+
+            volVectorField position = mesh.C();
+
+            forAll (mesh.C(), celli)
+            {
+                if (alpha[celli] > scalar(0.1))
+                {
+                    if (height < 2.0 - position[celli].y())
+                    {
+                        height = 2.0 - position[celli].y();
+                        xDirection = position[celli].x();
+                    }
+                }
+            }
+
+            word currentTime = obr_.time().timeName();
+
+            word Dir = mesh.time().path()/type();
+
+            if(!isDir(Dir))
+            {
+                mkDir(Dir);
+            }
+            
+            std::ofstream out;
+
+            out.open(Dir/"hallo", std::ios::app);
+
+            out << currentTime << "\t" << height << "\t" << xDirection<< "\n";
+       #};
+    }
+}
+
+
+// ************************************************************************* //

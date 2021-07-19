@@ -1,0 +1,7 @@
+findPoint {
+        type		swakExpression;
+        valueType       internalField;
+        expression      "pos().y*alpha.water";//"U == 0.5 ? 2.0 - pos().y : 0.0"
+        accumulations (max);
+}
+

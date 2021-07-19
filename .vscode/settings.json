@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+		"*Dict": "OpenFOAM",
+		"*Properties": "OpenFOAM",
+		"fvSchemes": "OpenFOAM",
+		"fvSolution": "OpenFOAM",
+		"**/constant/g": "OpenFOAM",
+		"**/0/*": "OpenFOAM",
+		"functionObjectTemplate.C": "cpp"
+	},
+    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    
+}

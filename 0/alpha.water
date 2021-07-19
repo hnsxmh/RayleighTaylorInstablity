@@ -1,0 +1,96 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      alpha.water;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField		#codeStream
+    {
+	codeInclude
+	#{
+	    #include "fvCFD.H"
+	#};
+
+	codeOptions
+	#{
+	    -I$(LIB_SRC)/finiteVolume/lnInclude \
+	    -I$(LIB_SRC)/meshTools/lnInclude
+	#};
+
+	codeLibs
+	#{
+	    -lmeshTools \
+	    -lfiniteVolume
+	#};
+
+	code
+	#{
+	    const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+	    const fvMesh& mesh = refCast<const fvMesh>(d.db());
+
+	    scalarField alpha(mesh.nCells(), 0.);
+
+	    forAll(alpha, i)
+	    {
+		const scalar x = mesh.C()[i][0];
+		const scalar y = mesh.C()[i][1];
+
+		// if (y >= 2.1 + 0.1*Foam::pow(cos(constant::
+		// 	mathematical::pi*x)*cos(constant::mathematical::pi*x), 2))
+		if (y >= 2.0 + 0.05*cos(constant::
+			mathematical::pi*2.0*x))
+		{
+		    alpha[i] = 1.;
+		}
+	    }
+
+		// writeEntry(os, alpha); for OpenFOAM-v8
+	    alpha.writeEntry("", os);
+	#};
+    };
+
+
+boundaryField
+{
+    leftWall
+    {
+        type            zeroGradient;
+    }
+
+    rightWall
+    {
+        type            zeroGradient;
+    }
+
+    bottomWall
+    {
+        type            zeroGradient;
+    }
+
+    topWall
+    {
+        // type            zeroGradient;
+        type            inletOutlet;
+        inletValue      uniform 1;
+        value           uniform 0;
+
+    }
+
+    backAndFront
+    {
+        type            empty;
+    }
+}
+// ************************************************************************* //

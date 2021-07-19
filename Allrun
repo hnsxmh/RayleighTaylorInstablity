@@ -1,0 +1,8 @@
+#!/bin/sh
+blockMesh
+
+#interFoam
+decomposePar
+
+mpirun -np 4 interFoam -parallel
+#------------------------------------------------------------------------------
