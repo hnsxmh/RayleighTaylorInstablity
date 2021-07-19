@@ -58,7 +58,7 @@ functions{
         functionObjectLibs ( "libutilityFunctionObjects.so" );
         enabled         true;
         type            coded;
-        name    printMinU;
+        name    VariationInY;
         executeControl      runTime;
         executeInterval     0.1;
         writeControl        runTime;//timeStep;
@@ -124,7 +124,7 @@ functions{
             
             std::ofstream out;
 
-            out.open(Dir/"hallo", std::ios::app);
+            out.open(Dir/type(), std::ios::app);
 
             out << currentTime << "\t" << height << "\t" << xDirection<< "\n";
        #};

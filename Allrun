@@ -4,5 +4,9 @@ blockMesh
 #interFoam
 decomposePar
 
-mpirun -np 4 interFoam -parallel
+mpirun -np 4 interFoam -noFunctionObjects -parallel
+
+reconstructPar
+
+interFoam -postProcess
 #------------------------------------------------------------------------------
