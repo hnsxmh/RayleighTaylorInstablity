@@ -55,7 +55,7 @@ maxDeltaT       0.01;
 functions{
     VariationInY
     {
-        functionObjectLibs ( "libutilityFunctionObjects.so" );
+        libs ( "libutilityFunctionObjects.so" );
         enabled         true;
         type            coded;
         name    VariationInY;
@@ -93,40 +93,100 @@ functions{
                 mesh().lookupObject<volScalarField>("alpha.water")
             );
 
-            const fvMesh& mesh = alpha.mesh();
+            const scalarField& alphaIn = alpha.internalField();
 
-            scalar height(0.0);
-
-            scalar xDirection(0.0);
-
-            volVectorField position = mesh.C();
-
-            forAll (mesh.C(), celli)
+            if (Pstream::parRun())
             {
-                if (alpha[celli] > scalar(0.1))
+                List<scalarField> alphaTotal(Pstream::nProcs());
+
+                alphaTotal[Pstream::myProcNo()] = alphaIn;
+
+                Pstream::gatherList(alphaTotal);
+
+                List<vectorField> positionTotal(Pstream::nProcs());
+
+                positionTotal[Pstream::myProcNo()] = alpha.mesh().C();
+
+                Pstream::gatherList(positionTotal);
+
+                if (Pstream::master())
                 {
-                    if (height < 2.0 - position[celli].y())
+                    scalar height(0.0);
+
+                    scalar xDirection(0.0);
+
+                    forAll(alphaTotal, proci)
                     {
-                        height = 2.0 - position[celli].y();
-                        xDirection = position[celli].x();
+                        const scalarField& alphaLocal = alphaTotal[proci];
+                        const vectorField& positionLocal = positionTotal[proci];
+
+                        forAll(alphaLocal, celli)
+                        {
+                            if (alphaLocal[celli] > scalar(0.1))
+                            {
+                                if (height < 2.0 - positionLocal[celli].y())
+                                {
+                                    height = 2.0 - positionLocal[celli].y();
+                                    xDirection = positionLocal[celli].x();
+                                }
+                            }                           
+                        }
                     }
+                    // Info << height << "\t" << xDirection<< "\n";
+
+                    word currentTime = obr_.time().timeName();
+
+                    word Dir = mesh().time().path() + "/../" + type();
+    
+                    if(!isDir(Dir))
+                    {
+                        mkDir(Dir);
+                    }
+                    
+                    std::ofstream out;
+    
+                    out.open(Dir/type(), std::ios::app);
+    
+                    out << currentTime << "\t" << height << "\t" << xDirection<< "\n";
                 }
             }
-
-            word currentTime = obr_.time().timeName();
-
-            word Dir = mesh.time().path()/type();
-
-            if(!isDir(Dir))
+            else
             {
-                mkDir(Dir);
+                const fvMesh& mesh = alpha.mesh();
+
+                scalar height(0.0);
+    
+                scalar xDirection(0.0);
+    
+                volVectorField position = mesh.C();
+    
+                forAll (mesh.C(), celli)
+                {
+                    if (alphaIn[celli] > scalar(0.1))
+                    {
+                        if (height < 2.0 - position[celli].y())
+                        {
+                            height = 2.0 - position[celli].y();
+                            xDirection = position[celli].x();
+                        }
+                    }
+                }
+
+                word currentTime = obr_.time().timeName();
+
+                word Dir = mesh.time().path()/type();
+
+                if(!isDir(Dir))
+                {
+                    mkDir(Dir);
+                }
+                
+                std::ofstream out;
+
+                out.open(Dir/type(), std::ios::app);
+
+                out << currentTime << "\t" << height << "\t" << xDirection<< "\n";
             }
-            
-            std::ofstream out;
-
-            out.open(Dir/type(), std::ios::app);
-
-            out << currentTime << "\t" << height << "\t" << xDirection<< "\n";
        #};
     }
 }
