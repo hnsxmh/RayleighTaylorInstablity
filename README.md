@@ -2,11 +2,36 @@
 Rayleigh Taylor Instablity Case using OpenFOAM-v2012
 
 How to run:
+1. with Allrun script (run the case parallelly and do post-processing serially.)
+
 ```cpp
 ./Allrun
 ```
+2. run the case parallelly and do post-processing parallelly too.
 
-Intialise the alpha field with codeStream in 0/alpha.water
+```cpp
+blockMesh
+
+decomposePar
+
+mpirun -np 4 interFoam -parallel
+
+reconstructPar
+```
+or
+```cpp
+blockMesh
+
+decomposePar
+
+mpirun -np 4 interFoam -noFunctionObjects -parallel
+
+reconstructPar
+
+mpirun -np 4 interFoam -postProcess -parallel
+```
+
+Intialise the alpha field with **codeStream** in 0/alpha.water
 
 ```cpp
 internalField		#codeStream
@@ -55,84 +80,4 @@ internalField		#codeStream
     };
 ```
 
-Postprocess with coded functionObject in system/controlDict
-```cpp
-functions{
-    VariationInY
-    {
-        functionObjectLibs ( "libutilityFunctionObjects.so" );
-        enabled         true;
-        type            coded;
-        name    VariationInY;
-        executeControl      runTime;
-        executeInterval     0.1;
-        writeControl        runTime;//timeStep;
-        writeInterval       0.1;
-        log true;
-
-        codeInclude
-        #{
-            #include "fvCFD.H"
-            #include <fstream>
-            // #include "OFstream.H"
-        #};
-    
-        codeOptions
-        #{
-            -I$(LIB_SRC)/finiteVolume/lnInclude \
-            -I$(LIB_SRC)/meshTools/lnInclude \
-            -I$(LIB_SRC)/OpenFOAM/lnInclude
-        #};
-    
-        codeLibs
-        #{
-            -lmeshTools \
-            -lfiniteVolume \
-            -lOpenFOAM
-        #};
-
-        codeExecute
-        #{
-            const volScalarField& alpha
-            (
-                mesh().lookupObject<volScalarField>("alpha.water")
-            );
-
-            const fvMesh& mesh = alpha.mesh();
-
-            scalar height(0.0);
-
-            scalar xDirection(0.0);
-
-            volVectorField position = mesh.C();
-
-            forAll (mesh.C(), celli)
-            {
-                if (alpha[celli] > scalar(0.1))
-                {
-                    if (height < 2.0 - position[celli].y())
-                    {
-                        height = 2.0 - position[celli].y();
-                        xDirection = position[celli].x();
-                    }
-                }
-            }
-
-            word currentTime = obr_.time().timeName();
-
-            word Dir = mesh.time().path()/type();
-
-            if(!isDir(Dir))
-            {
-                mkDir(Dir);
-            }
-            
-            std::ofstream out;
-
-            out.open(Dir/type(), std::ios::app);
-
-            out << currentTime << "\t" << height << "\t" << xDirection<< "\n";
-       #};
-    }
-}
-```
+Post-process using **coded** functionObject which supports **serial and parallel runing**. Check the file system/controlDict for detail.
